@@ -1,0 +1,16 @@
+{
+  "version": 3,
+  "configurePresets": [
+    {
+      "name": "win32",
+      "displayName": "VS 2022 Win32",
+      "generator": "Visual Studio 17 2022",
+      "architecture": "Win32",
+      "binaryDir": "${sourceDir}/build"
+    }
+  ],
+  "buildPresets": [
+    { "name": "release", "configurePreset": "win32", "configuration": "Release" },
+    { "name": "debug", "configurePreset": "win32", "configuration": "Debug" }
+  ]
+}

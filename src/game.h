@@ -1,0 +1,24 @@
+#pragma once
+
+#include <cstdint>
+#include <optional>
+
+// Raw values read from game memory.
+struct GameSnapshot {
+    std::optional<uint32_t> p1Character;
+    std::optional<uint32_t> p2Character;
+    std::optional<uint32_t> p1ActiveCharacter;
+    std::optional<uint32_t> p2ActiveCharacter;
+    std::optional<uint32_t> stage;
+    std::optional<uint32_t> localPlayerSide;
+    std::optional<uint32_t> gameMode;
+    std::optional<uint32_t> inMatch;
+    std::optional<uint32_t> difficulty;
+    std::optional<uint32_t> modeVariant;
+    std::optional<uint32_t> replay;
+
+    bool operator==(const GameSnapshot& o) const;
+    bool operator!=(const GameSnapshot& o) const { return !(*this == o); }
+};
+
+GameSnapshot readGame();
