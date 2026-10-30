@@ -7,14 +7,7 @@ cmake-build-*/
 .vs/
 *.user
 
-# Discord Game SDK: download it yourself (see README), it isn't redistributed here
+# Discord Game SDK: download it yourself (see README)
 third_party/discord_game_sdk/
-
-# find_addresses.py memory snapshots and dumps (hundreds of MB, and copies of game memory)
-tools/snaps/
-game_dump.exe
-
-# Never commit the game itself
-game.exe
 
 *.log
