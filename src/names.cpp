@@ -49,12 +49,12 @@ const std::unordered_map<uint32_t, const char*> kStages = {
 
 // Game mode IDs. Modes split by addr::variantFor are keyed as (mode << 8) | variant.
 const std::unordered_map<uint32_t, const char*> kGameModes = {
-    {0x00, "Story"},
-    {0x01, "Versus"},
-    {0x02, "Arcade"},        {0x0201, "Tag Arcade"},
+    {0x00, "Story Mode"},
+    {0x01, "Versus Mode"},
+    {0x02, "Arcade Mode"},        {0x0201, "Tag Arcade Mode"},
     {0x03, "Time Attack"},
-    {0x04, "Survival"},
-    {0x05, "Training"},      {0x0500, "Free Training"}, {0x0501, "Command Training"},
+    {0x04, "Survival Mode"},
+    {0x05, "Training Mode"},      {0x0500, "Free Training"}, {0x0501, "Command Training"},
     {0x08, "Online Match"},  // Ranked and Lobby matches share this ID
     {0x0F, "Watch Mode"},
     {0x10, "Team Fight"},
@@ -129,6 +129,23 @@ const char* difficultyName(uint32_t level) {
 }
 
 bool isSpectatorMode(uint32_t mode) { return mode == 0x0F; }
+
+const char* screenName(uint32_t screen) {
+    switch (screen) {
+    case 4:  return "Character Select";
+    case 5:  return "Stage Select";
+    case 9:  // top level
+    case 10: return "In Main Menu";
+    case 14: return "Result Screen";
+    case 20: // top level
+    case 21: return "In Online Menu";
+    case 27: return "Waiting in Lobby";
+    case 70: return "Leaderboards";
+    case 76: // top level
+    case 77: return "Customizing Music";
+    default: return nullptr;
+    }
+}
 
 std::string assetKey(const std::string& name) {
     std::string key;

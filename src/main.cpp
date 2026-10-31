@@ -1,3 +1,4 @@
+#include "addresses.h"
 #include "discord.h"
 #include "game.h"
 #include "log.h"
@@ -44,12 +45,13 @@ std::string optToString(const std::optional<uint32_t>& v)
 
 void logSnapshot(const GameSnapshot& s) 
 {
-    LOG("p1=%s p1active=%s p2=%s p2active=%s stage=%s side=%s mode=%s variant=%s inMatch=%s difficulty=%s replay=%s",
+    LOG("p1=%s p1active=%s p2=%s p2active=%s stage=%s side=%s mode=%s variant=%s inMatch=%s difficulty=%s replay=%s arcadeStage=%s ui=%s",
         optToString(s.p1Character).c_str(), optToString(s.p1ActiveCharacter).c_str(),
         optToString(s.p2Character).c_str(), optToString(s.p2ActiveCharacter).c_str(),
         optToString(s.stage).c_str(), optToString(s.localPlayerSide).c_str(),
         optToString(s.gameMode).c_str(), optToString(s.modeVariant).c_str(),
-        optToString(s.inMatch).c_str(), optToString(s.difficulty).c_str(), optToString(s.replay).c_str());
+        optToString(s.inMatch).c_str(), optToString(s.difficulty).c_str(), optToString(s.replay).c_str(), optToString(s.arcadeStage).c_str(),
+        optToString(s.uiLayer).c_str());
 }
 
 // Prefers whoever is on screen, so tag battles follow the active partner.
@@ -58,24 +60,133 @@ std::optional<uint32_t> onScreen(const std::optional<uint32_t>& active, const st
     return active && characterName(*active) ? active : slot;
 }
 
-class PresenceBuilder 
+// Builds the Discord presence for whichever screen the game is on. build() picks the screen;
+// each build*() function fills in the presence for one of them.
+class PresenceBuilder
 {
 public:
-    Presence build(const GameSnapshot& s) 
+    Presence build(const GameSnapshot& s)
+    {
+        // The fight flag is set as soon as loading starts, while the stage and characters are still
+        // stale; the UI layer stays at kLoading until the fight is actually loaded.
+        const uint32_t ui = s.uiLayer.value_or(0);
+        const bool inBattle = s.inMatch.value_or(0) != 0 && s.stage != kNoStage;
+
+        // The timer only runs during a battle, restarting with each one.
+        if (inBattle && !m_wasInBattle) m_battleStart = static_cast<int64_t>(time(nullptr));
+        if (!inBattle) m_battleStart = 0;
+        m_wasInBattle = inBattle;
+
+        if (inBattle) return buildBattle(s);
+        if (ui == addr::ui::kCharacterSelect) return buildCharacterSelect(s);
+        if (ui == addr::ui::kStageSelect) return buildStageSelect(s);
+        return buildMenu(s);
+    }
+
+private:
+    // What your side is doing on character select.
+    struct CharacterPick
+    {
+        std::optional<uint32_t> first;   // your first character (the cursor, while picking it)
+        std::optional<uint32_t> partner; // the tag partner under the cursor, while picking it
+        bool choosingPartner = false;
+    };
+
+    // Reads your side's pick: the slot follows the cursor while you pick your first character,
+    // and the tag slot follows it while you pick your partner.
+    CharacterPick characterPick(const GameSnapshot& s) const
+    {
+        const bool onP2Side = s.localPlayerSide.value_or(0) == 1;
+        const auto& step = onP2Side ? s.p2PickStep : s.p1PickStep;
+
+        CharacterPick pick;
+        pick.first = onP2Side ? s.p2Character : s.p1Character;
+        pick.partner = onP2Side ? s.p2TagCharacter : s.p1TagCharacter;
+        pick.choosingPartner = step.value_or(0xFF) == 1 && pick.partner != kNoCharacter;
+        return pick;
+    }
+
+    static bool isKnownCharacter(const std::optional<uint32_t>& id)
+    {
+        return id && characterName(*id);
+    }
+
+    // Character select: whoever is under your cursor, and your partner once you're picking one.
+    Presence buildCharacterSelect(const GameSnapshot& s)
+    {
+        const CharacterPick pick = characterPick(s);
+
+        // The cursor is the partner while picking one, otherwise the first character. Keep the
+        // last real pick so the image doesn't flicker when a slot briefly reads empty.
+        auto selectChar = pick.choosingPartner ? pick.partner : pick.first;
+        if (isKnownCharacter(selectChar)) m_lastSelected = selectChar;
+        else selectChar = m_lastSelected;
+
+        Presence p;
+        p.details = "Character Select";
+        buildDefaultImage(p);
+        
+        p.state = selectChar == pick.partner ? "Choosing Partner" : "Choosing Character";
+        if (isKnownCharacter(selectChar))
+        {
+            p.smallImage = assetKey(characterName(*selectChar));
+            p.smallText = characterLabel(*selectChar);
+        }
+
+        return p;
+    }
+
+    // Stage select. The stage address isn't set until the fight loads either.
+    Presence buildStageSelect(const GameSnapshot& s)
+    {
+        const char* stage = s.stage ? stageName(*s.stage) : nullptr;
+        
+        Presence p;
+        p.details = "Stage Select";
+        buildStageImage(s, stage, p);
+        return p;
+    }
+
+    void buildDefaultImage(Presence& p)
+    {
+        p.largeImage = settings::kDefaultLargeImage;
+        p.largeText = "DOA5LRDiscord v.1.3.0";
+    }
+
+    // Main menu, results and any screen without its own function: the screen's name, if known.
+    Presence buildMenu(const GameSnapshot& s)
+    {
+        Presence p;
+        const char* screen = s.uiLayer ? screenName(*s.uiLayer) : nullptr;
+        p.details = screen ? screen : "Waiting";
+        buildDefaultImage(p);
+        return p;
+    }
+
+    void buildStageImage(const GameSnapshot& s, const char* stage, Presence& p)
+    {
+        if (const char* image = stage ? stageImage(*s.stage) : nullptr)
+        {
+            p.largeImage = image;
+            p.largeText = stage;
+        }
+        else
+        {
+            buildDefaultImage(p);
+        }
+    }
+
+    // A loaded fight (or replay / Watch Mode): mode, stage image, your character and the timer.
+    Presence buildBattle(const GameSnapshot& s)
     {
         const bool onP2Side = s.localPlayerSide.value_or(0) == 1;
         auto mainChar = onP2Side ? onScreen(s.p2ActiveCharacter, s.p2Character) : onScreen(s.p1ActiveCharacter, s.p1Character);
         const bool hasChar = mainChar && *mainChar != kNoCharacter;
         const char* stage = s.stage ? stageName(*s.stage) : nullptr;
-        const bool inMatch = s.inMatch.value_or(0) != 0;
-
-        if (inMatch && !m_wasInMatch) m_matchStart = static_cast<int64_t>(time(nullptr));
-        if (!inMatch) m_matchStart = 0;
-        m_wasInMatch = inMatch;
 
         Presence p;
-        p.details = modeLabel(s, inMatch);
-        p.startTimestamp = m_matchStart;
+        p.details = battleLabel(s);
+        p.startTimestamp = m_battleStart;
 
         const bool isReplay = s.replay.value_or(0) != 0;
         const bool spectating = isReplay || (s.gameMode && isSpectatorMode(*s.gameMode));
@@ -91,46 +202,53 @@ public:
             charText = characterLabel(*mainChar);
         }
         
-        // TODO : Change what shows in the state, maybe.
-        /**
-        if (inMatch) {
-            p.state = charText;
-            if (stage) p.state += p.state.empty() ? stage : std::string(" - ") + stage;
-        }
-        */
-
-        // Set Stage Image and Character Text.
-        const char* image = inMatch && stage ? stageImage(*s.stage) : nullptr;
-        p.largeImage = image ? image : settings::kDefaultLargeImage;
-        p.largeText = inMatch && stage ? stage : "DEAD OR ALIVE 5 Last Round";
-        if (inMatch && !spectating && hasChar && characterName(*mainChar)) {
+        if (!isReplay) p.state = progressLabel(s);
+        buildStageImage(s, stage, p);
+        if (!spectating && hasChar && characterName(*mainChar)) {
             p.smallImage = assetKey(characterName(*mainChar));
             p.smallText = charText;
         }
-        
+
         return p;
     }
 
-private:
-    std::string modeLabel(const GameSnapshot& s, bool inMatch) const 
+    // Details line during a battle: the mode.
+    std::string battleLabel(const GameSnapshot& s) const
     {
-        // The mode byte keeps the previous mode until the next fight starts.
-        if (!inMatch) return "Waiting";
         if (s.replay.value_or(0) != 0) return "Watching a Replay";
         if (!s.gameMode) return "In a Match";
 
         const char* mode = gameModeName(*s.gameMode, s.modeVariant);
-        std::string label = mode ? mode : hexId("Game Mode", *s.gameMode);
+        return mode ? mode : hexId("Game Mode", *s.gameMode);
+    }
+
+    // State line during a battle: "Stage 4 (Master)" in Arcade, "Defeated 14 (Master)" in Survival,
+    // just the difficulty in Time Attack, and empty otherwise.
+    std::string progressLabel(const GameSnapshot& s) const
+    {
         // Only read for modes that have a difficulty (addr::difficultyFor).
+        std::string difficulty;
         if (s.difficulty) {
-            const char* difficulty = difficultyName(*s.difficulty);
-            label += " (" + (difficulty ? std::string(difficulty) : "Level " + std::to_string(*s.difficulty + 1)) + ")";
+            const char* name = difficultyName(*s.difficulty);
+            difficulty = name ? name : "Level " + std::to_string(*s.difficulty + 1);
         }
+
+        // The same counter numbers Arcade stages from 0, and in Survival runs one ahead of the
+        // opponents beaten (it goes up as soon as the next opponent jumps in).
+        const bool arcade = s.gameMode == 0x02u;
+        const bool survival = s.gameMode == 0x04u;
+        if (!(arcade || survival) || !s.arcadeStage) return difficulty;
+
+        const uint32_t count = *s.arcadeStage;
+        std::string label = arcade ? "Stage " + std::to_string(count + 1)
+                                   : "Defeated " + std::to_string(count > 0 ? count - 1 : 0);
+        if (!difficulty.empty()) label += " (" + difficulty + ")";
         return label;
     }
 
-    bool m_wasInMatch = false;
-    int64_t m_matchStart = 0;
+    bool m_wasInBattle = false;
+    int64_t m_battleStart = 0;
+    std::optional<uint32_t> m_lastSelected; // last real character under your cursor on character select
 };
 
 DWORD WINAPI worker(LPVOID) 
