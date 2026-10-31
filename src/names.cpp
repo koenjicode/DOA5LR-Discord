@@ -18,15 +18,15 @@ const std::unordered_map<uint32_t, const char*> kCharacters = {
     {0x2D, "Honoka"},     {0x2E, "Raidou"},      {0x2F, "Naotora"},    {0x30, "Mai"},
 };
 
-// Stage IDs
+// Battle Stage IDs
 const std::unordered_map<uint32_t, const char*> kStages = {
-    {0x01, "Scramble 1"},             {0x02, "Scramble 2"},
-    {0x03, "Fuel 1"},                 {0x04, "Fuel 2"},
+    {0x01, "Scramble"},               {0x02, "Scramble"}, // bottom floor
+    {0x03, "Fuel"},                   {0x04, "Fuel"}, // bottom floor
     {0x05, "Lab (Closed Capsules)"},  {0x06, "Lab (Open Capsules)"},
-    {0x07, "Lab (Destroyed)"},        {0x08, "Flow 1"},
-    {0x09, "Flow 2"},                 {0x0A, "Sanctuary"},
-    {0x0B, "Home 1"},                 {0x0C, "Home 2"},
-    {0x0D, "Street 1"},               {0x0E, "Street 2"},
+    {0x07, "Lab (Destroyed)"},        {0x08, "Flow"},
+    {0x09, "Primal"},                 {0x0A, "Sanctuary"},
+    {0x0B, "Home"},                   {0x0C, "Home"}, // outside
+    {0x0D, "Street"},                 {0x0E, "Street"}, // bottom
     {0x0F, "The Show"},               {0x10, "The Tiger Show"},
     {0x11, "Coming Soon"},            {0x13, "Hotzone"},
     {0x14, "The Ends of the Earth"},  {0x16, "Depth"},
@@ -36,15 +36,15 @@ const std::unordered_map<uint32_t, const char*> kStages = {
     {0x1F, "Arrival"},                {0x21, "Zack Island"},
     {0x22, "Forest"},                 {0x23, "Sky City Tokyo"},
     {0x24, "Desert"},                 {0x25, "Lost World"},
-    {0x26, "Aircraft Carrier"},       {0x27, "Lorelei 1"},
-    {0x28, "Lorelei 2"},              {0x29, "Haunted Lorelei 1"},
-    {0x2A, "Haunted Lorelei 2"},      {0x2E, "Mila's Bar 1"},
-    {0x2F, "Mila's Bar 2"},           {0x30, "Jann Lee/Leifang Train"},
-    {0x31, "Helena's Ship 1"},        {0x32, "Mila's Shower/Closet"},
-    {0x33, "Christie's Bar"},         {0x34, "Helena's Ship 2"},
-    {0x35, "Oil Platform"},           {0x36, "Helena's Ship 3"},
-    {0x37, "Helena's Ship 4"},        {0x38, "Kasumi's Secret Village"},
-    {0x39, "Infiltrating Depth"},     {0x3A, "Christie's Bar 2"},
+    {0x26, "Aircraft Carrier"},       {0x27, "Lorelei"},
+    {0x28, "Lorelei"},                {0x29, "Haunted Lorelei"},
+    {0x2A, "Haunted Lorelei"}, // bottom 
+    
+    // PS4 Stages
+    {0x2B, "The Danger Zone"},        {0x2C, "The Crimson"},
+    {0x2D, "The Crimson"},            {0x12, "Fireworks"},
+    {0x17, "Azuchi"},                 {0x20, "Azuchi"},
+    {0x1C, "Attack On Titan"},
 };
 
 // Game mode IDs. Modes split by addr::variantFor are keyed as (mode << 8) | variant.
@@ -85,7 +85,7 @@ const std::unordered_map<uint32_t, const char*> kStageImages = {
     {0x18, "stage_temple_of_the_dragon"},
     {0x19, "stage_sakura"},
     {0x1A, "stage_fighting_entertainment"},
-    {0x1D, "stage_sweat"},     // Gym
+    {0x1D, "stage_sweat"},
     {0x1E, "stage_dead_or_alive"},
     {0x21, "stage_zack_island"},
     {0x22, "stage_forest"},
@@ -93,7 +93,15 @@ const std::unordered_map<uint32_t, const char*> kStageImages = {
     {0x24, "stage_desert"},
     {0x25, "stage_lost_world"},
     {0x26, "stage_aircraft_carrier"},
+    {0x27, "stage_lorelei"}, {0x28, "stage_lorelei"},
     {0x29, "stage_haunted_lorelei"}, {0x2A, "stage_haunted_lorelei"},
+    
+    // PS4 stages
+    {0x2B, "stage_the_danger_zone"},
+    {0x2C, "stage_the_crimson"}, {0x2D, "stage_the_crimson"},
+    {0x12, "stage_fireworks"},
+    {0x17, "stage_azuchi"}, {0x20, "stage_azuchi"},
+    {0x1C, "stage_attack_on_titan"},
 };
 
 const char* lookup(const std::unordered_map<uint32_t, const char*>& table, uint32_t id) {

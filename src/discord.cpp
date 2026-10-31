@@ -5,8 +5,7 @@
 
 namespace {
 
-using DiscordCreateFn = enum EDiscordResult(DISCORD_API*)(DiscordVersion, struct DiscordCreateParams*,
-                                                         struct IDiscordCore**);
+using DiscordCreateFn = enum EDiscordResult(DISCORD_API*)(DiscordVersion, struct DiscordCreateParams*, struct IDiscordCore**);
 
 constexpr DWORD kReconnectDelayMs = 10000;
 
