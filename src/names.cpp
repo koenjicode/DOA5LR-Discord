@@ -22,7 +22,7 @@ const std::unordered_map<uint32_t, const char*> kCharacters = {
 const std::unordered_map<uint32_t, const char*> kStages = {
     {0x01, "Scramble"},               {0x02, "Scramble"}, // bottom floor
     {0x03, "Fuel"},                   {0x04, "Fuel"}, // bottom floor
-    {0x05, "Lab (Closed Capsules)"},  {0x06, "Lab (Open Capsules)"},
+    {0x05, "Lab (Closed Capsules)"},  {0x06, "Lab"},
     {0x07, "Lab (Destroyed)"},        {0x08, "Flow"},
     {0x09, "Primal"},                 {0x0A, "Sanctuary"},
     {0x0B, "Home"},                   {0x0C, "Home"}, // outside
@@ -70,13 +70,13 @@ const char* const kDifficulties[] = {
 // Stage ID -> Discord asset key (files in resources/_discord_assets). Variants of a stage
 // share one image; stages without an entry show the default large image.
 const std::unordered_map<uint32_t, const char*> kStageImages = {
-    {0x01, "stage_scramble"},  {0x02, "stage_scramble"},
-    {0x03, "stage_fuel"},      {0x04, "stage_fuel"},
+    {0x01, "stage_scramble"},  {0x02, "stage_scramble_2"},
+    {0x03, "stage_fuel"},      {0x04, "stage_fuel_2"},
     {0x05, "stage_lab"},       {0x06, "stage_lab"},       {0x07, "stage_lab"},
-    {0x08, "stage_flow"},      {0x09, "stage_flow"},
+    {0x08, "stage_flow"},      {0x09, "stage_flow_2"},
     {0x0A, "stage_sanctuary"},
-    {0x0B, "stage_home"},      {0x0C, "stage_home"},
-    {0x0D, "stage_street"},    {0x0E, "stage_street"},
+    {0x0B, "stage_home"},      {0x0C, "stage_home_2"},
+    {0x0D, "stage_street"},    {0x0E, "stage_street_2"},
     {0x0F, "stage_the_show"},
     {0x10, "stage_the_tiger_show"},
     {0x13, "stage_hotzone"},
@@ -85,6 +85,7 @@ const std::unordered_map<uint32_t, const char*> kStageImages = {
     {0x18, "stage_temple_of_the_dragon"},
     {0x19, "stage_sakura"},
     {0x1A, "stage_fighting_entertainment"},
+    {0x1A, "stage_dojo"},
     {0x1D, "stage_sweat"},
     {0x1E, "stage_dead_or_alive"},
     {0x21, "stage_zack_island"},
@@ -93,14 +94,14 @@ const std::unordered_map<uint32_t, const char*> kStageImages = {
     {0x24, "stage_desert"},
     {0x25, "stage_lost_world"},
     {0x26, "stage_aircraft_carrier"},
-    {0x27, "stage_lorelei"}, {0x28, "stage_lorelei"},
-    {0x29, "stage_haunted_lorelei"}, {0x2A, "stage_haunted_lorelei"},
+    {0x27, "stage_lorelei"}, {0x28, "stage_lorelei_2"},
+    {0x29, "stage_haunted_lorelei"}, {0x2A, "stage_haunted_lorelei_2"},
     
     // PS4 stages
     {0x2B, "stage_the_danger_zone"},
-    {0x2C, "stage_the_crimson"}, {0x2D, "stage_the_crimson"},
+    {0x2C, "stage_the_crimson"}, {0x2D, "stage_the_crimson_2"},
     {0x12, "stage_fireworks"},
-    {0x17, "stage_azuchi"}, {0x20, "stage_azuchi"},
+    {0x17, "stage_azuchi"}, {0x20, "stage_azuchi_2"},
     {0x1C, "stage_attack_on_titan"},
 };
 
