@@ -79,6 +79,7 @@ const std::unordered_map<uint32_t, const char*> kStageImages = {
     {0x0D, "stage_street"},    {0x0E, "stage_street_2"},
     {0x0F, "stage_the_show"},
     {0x10, "stage_the_tiger_show"},
+    {0x11, "stage_coming_soon"},
     {0x13, "stage_hotzone"},
     {0x14, "stage_the_ends_of_the_earth"},
     {0x16, "stage_depth"},
@@ -141,8 +142,10 @@ const char* screenName(uint32_t screen) {
     case 9:  // top level
     case 10: return "In Main Menu";
     case 14: return "Result Screen";
+    case 17: return "In the Title Screen";
     case 20: // top level
     case 21: return "In Online Menu";
+    case 24: return "Searching for a Lobby...";
     case 27: return "Waiting in Lobby";
     case 70: return "Leaderboards";
     case 76: // top level
