@@ -45,13 +45,13 @@ std::string optToString(const std::optional<uint32_t>& v)
 
 void logSnapshot(const GameSnapshot& s) 
 {
-    LOG("p1=%s p1active=%s p2=%s p2active=%s stage=%s side=%s mode=%s variant=%s inMatch=%s difficulty=%s replay=%s arcadeStage=%s ui=%s",
+    LOG("p1=%s p1active=%s p2=%s p2active=%s stage=%s side=%s mode=%s variant=%s inMatch=%s difficulty=%s replay=%s arcadeStage=%s ui=%s spectating=%s lobby=%s/%s",
         optToString(s.p1Character).c_str(), optToString(s.p1ActiveCharacter).c_str(),
         optToString(s.p2Character).c_str(), optToString(s.p2ActiveCharacter).c_str(),
         optToString(s.stage).c_str(), optToString(s.localPlayerSide).c_str(),
         optToString(s.gameMode).c_str(), optToString(s.modeVariant).c_str(),
         optToString(s.inMatch).c_str(), optToString(s.difficulty).c_str(), optToString(s.replay).c_str(), optToString(s.arcadeStage).c_str(),
-        optToString(s.uiLayer).c_str());
+        optToString(s.uiLayer).c_str(), optToString(s.spectating).c_str(), optToString(s.lobbyMembers).c_str(), optToString(s.lobbySlots).c_str());
 }
 
 // Prefers whoever is on screen, so tag battles follow the active partner.
@@ -59,6 +59,18 @@ std::optional<uint32_t> onScreen(const std::optional<uint32_t>& active, const st
 {
     return active && characterName(*active) ? active : slot;
 }
+
+// Game mode IDs (addr::kGameMode) the presence treats specially.
+constexpr uint32_t kVersusMode = 0x01;
+constexpr uint32_t kArcadeMode = 0x02;
+constexpr uint32_t kSurvivalMode = 0x04;
+constexpr uint32_t kTrainingMode = 0x05;
+constexpr uint32_t kOnlineMode = 0x08;
+constexpr uint32_t kTutorialMode = 0x11;
+constexpr uint32_t kComboChallengeMode = 0x12;
+
+// addr::kP1Controller / kP2Controller value for a CPU-controlled side.
+constexpr uint32_t kCpuController = 0xFF;
 
 // Builds the Discord presence for whichever screen the game is on. build() picks the screen;
 // each build*() function fills in the presence for one of them.
@@ -77,13 +89,68 @@ public:
         if (!inBattle) m_battleStart = 0;
         m_wasInBattle = inBattle;
 
-        if (inBattle) return buildBattle(s);
-        if (ui == addr::ui::kCharacterSelect) return buildCharacterSelect(s);
-        if (ui == addr::ui::kStageSelect) return buildStageSelect(s);
-        return buildMenu(s);
+        Presence p;
+        if (inBattle) p = buildBattle(s);
+        else if (ui == addr::ui::kCharacterSelect) p = buildCharacterSelect(s);
+        else if (ui == addr::ui::kStageSelect) p = buildStageSelect(s);
+        else if (isSearching(s)) p = buildSearch(s);
+        else p = buildMenu(s);
+
+        p.state = locationLabel(s, inBattle);
+        if (isInLobby(s)) buildLobby(s, p);
+        return p;
     }
 
 private:
+    // is searching for a match in ranked queue.
+    static bool isSearching(const GameSnapshot& s)
+    {
+        return s.uiLayer.value_or(0) == 21 && s.lobbySlots.value_or(0) > 0;
+    }
+    
+    // Is ranked match: ranked runs on a hidden 2-slot lobby that isn't a player-made one.
+    static bool isRanked(const GameSnapshot& s)
+    {
+        return s.lobbySlots.value_or(0) > 0 && s.playerLobby.value_or(1) == 0;
+    }
+
+    // is a player lobby.
+    static bool isInLobby(const GameSnapshot& s)
+    {
+        return s.uiLayer.value_or(0) != 21 && !isRanked(s) && s.lobbySlots.value_or(0) > 0;
+    }
+
+    // State line on every screen: where you're playing. Online lobbies read "In a Lobby" so Discord's
+    // party size reads naturally after it; offline fights with progress show that instead.
+    std::string locationLabel(const GameSnapshot& s, bool inBattle) const
+    {
+        if (isInLobby(s)) return "In a Lobby";
+        if (isRanked(s)) return "Online";
+        if (!inBattle) return s.uiLayer && isOnlineScreen(*s.uiLayer) ? "Online" : "Offline";
+
+        if (s.replay.value_or(0) != 0) return "Offline";
+        if (s.gameMode == kOnlineMode) return "Online";
+
+        const std::string progress = progressLabel(s);
+        if (!progress.empty()) return progress;
+
+        if (s.gameMode == kVersusMode)
+        {
+            const bool cpu = s.p1Controller.value_or(0) == kCpuController ||
+                             s.p2Controller.value_or(0) == kCpuController;
+            return cpu ? "Vs CPU" : "Local Match";
+        }
+        return "Offline";
+    }
+
+    // Online lobby: people in the lobby out of its slots, shown as the party size.
+    void buildLobby(const GameSnapshot& s, Presence& p)
+    {
+        if (!s.lobbyMembers || *s.lobbyMembers == 0) return;
+        p.partySize = static_cast<int32_t>(*s.lobbyMembers);
+        p.partyMax = static_cast<int32_t>(*s.lobbySlots);
+    }
+
     // What your side is doing on character select.
     struct CharacterPick
     {
@@ -123,10 +190,9 @@ private:
         else selectChar = m_lastSelected;
 
         Presence p;
-        p.details = "Character Select";
+        p.details = pick.choosingPartner ? "Choosing a Partner" : "Choosing a Character";
         buildDefaultImage(p);
-        
-        p.state = selectChar == pick.partner ? "Choosing Partner" : "Choosing Character";
+
         if (isKnownCharacter(selectChar))
         {
             p.smallImage = assetKey(characterName(*selectChar));
@@ -142,8 +208,14 @@ private:
         const char* stage = s.stage ? stageName(*s.stage) : nullptr;
         
         Presence p;
-        p.details = "Stage Select";
+        p.details = isRanked(s) ? "Randomizing Stage" : "Choosing a Stage";
         buildStageImage(s, stage, p);
+        
+        if (isKnownCharacter(m_lastSelected))
+        {
+            buildCharacterImage(m_lastSelected, p);
+        }
+        
         return p;
     }
 
@@ -151,6 +223,16 @@ private:
     {
         p.largeImage = settings::kDefaultLargeImage;
         p.largeText = "DOA5LRDiscord v.1.3.0";
+    }
+    
+    // Build search data.
+    Presence buildSearch(const GameSnapshot& s)
+    {
+        Presence p;
+        bool hasOpponent = s.lobbyMembers.value_or(0) == 2;
+        p.details = hasOpponent ? "Connecting with Opponent" : "Searching for Rank Match...";
+        buildDefaultImage(p);
+        return p;
     }
 
     // Main menu, results and any screen without its own function: the screen's name, if known.
@@ -176,6 +258,12 @@ private:
         }
     }
 
+    void buildCharacterImage(std::optional<uint32_t> mainChar, Presence& p)
+    {
+        p.smallImage = assetKey(characterName(*mainChar));
+        p.smallText = characterLabel(*mainChar);
+    }
+
     // A loaded fight (or replay / Watch Mode): mode, stage image, your character and the timer.
     Presence buildBattle(const GameSnapshot& s)
     {
@@ -189,37 +277,38 @@ private:
         p.startTimestamp = m_battleStart;
 
         const bool isReplay = s.replay.value_or(0) != 0;
-        const bool spectating = isReplay || (s.gameMode && isSpectatorMode(*s.gameMode));
+        // Replays, Watch Mode and online matches you're only watching have no character of yours.
+        const bool spectating = isReplay || (s.gameMode && isWatchMode(*s.gameMode)) ||
+                                s.spectating.value_or(0) != 0;
 
-        std::string charText;
-        if (spectating) {
-            auto p1 = onScreen(s.p1ActiveCharacter, s.p1Character);
-            auto p2 = onScreen(s.p2ActiveCharacter, s.p2Character);
-            if (p1 && *p1 != kNoCharacter && p2 && *p2 != kNoCharacter) {
-                charText = characterLabel(*p1) + " vs " + characterLabel(*p2);
-            }
-        } else if (hasChar) {
-            charText = characterLabel(*mainChar);
-        }
-        
-        if (!isReplay) p.state = progressLabel(s);
         buildStageImage(s, stage, p);
         if (!spectating && hasChar && characterName(*mainChar)) {
-            p.smallImage = assetKey(characterName(*mainChar));
-            p.smallText = charText;
+            buildCharacterImage(mainChar, p);
         }
 
         return p;
     }
 
-    // Details line during a battle: the mode.
+    // Details line during a battle: what you're doing in which mode, e.g. "Playing Arcade Mode".
     std::string battleLabel(const GameSnapshot& s) const
     {
         if (s.replay.value_or(0) != 0) return "Watching a Replay";
         if (!s.gameMode) return "In a Match";
 
-        const char* mode = gameModeName(*s.gameMode, s.modeVariant);
-        return mode ? mode : hexId("Game Mode", *s.gameMode);
+        const uint32_t mode = *s.gameMode;
+        if (mode == kOnlineMode)
+        {
+            if (isRanked(s)) return "Playing Rank Match";
+            if (!isInLobby(s)) return "Playing Online Match";
+            return s.spectating.value_or(0) != 0 ? "Spectating Lobby Match" : "Playing Lobby Match";
+        }
+
+        const char* name = gameModeName(mode, s.modeVariant);
+        const std::string label = name ? name : hexId("Game Mode", mode);
+        if (isWatchMode(mode)) return "In " + label;
+        if (mode == kTutorialMode) return "Playing the " + label;
+        if (mode == kTrainingMode || mode == kComboChallengeMode) return "Practicing in " + label;
+        return "Playing " + label;
     }
 
     // State line during a battle: "Stage 4 (Master)" in Arcade, "Defeated 14 (Master)" in Survival,
@@ -235,8 +324,8 @@ private:
 
         // The same counter numbers Arcade stages from 0, and in Survival runs one ahead of the
         // opponents beaten (it goes up as soon as the next opponent jumps in).
-        const bool arcade = s.gameMode == 0x02u;
-        const bool survival = s.gameMode == 0x04u;
+        const bool arcade = s.gameMode == kArcadeMode;
+        const bool survival = s.gameMode == kSurvivalMode;
         if (!(arcade || survival) || !s.arcadeStage) return difficulty;
 
         const uint32_t count = *s.arcadeStage;

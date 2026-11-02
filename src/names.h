@@ -20,8 +20,11 @@ const char* difficultyName(uint32_t level);
 // Name of a menu screen (addr::kUiLayer), or nullptr for one that hasn't been identified.
 const char* screenName(uint32_t screen);
 
+// Menu screens that only exist online (online menu, lobby, leaderboards).
+bool isOnlineScreen(uint32_t screen);
+
 // Modes where nobody is playing (Watch Mode): show "P1 vs P2" and no character image.
-bool isSpectatorMode(uint32_t mode);
+bool isWatchMode(uint32_t mode);
 
 // Discord asset key of the stage's image, or nullptr if no image was made for it.
 const char* stageImage(uint32_t stage);

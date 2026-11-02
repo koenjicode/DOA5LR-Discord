@@ -25,7 +25,7 @@ bool Presence::operator==(const Presence& o) const
 {
     return details == o.details && state == o.state && largeImage == o.largeImage &&
            largeText == o.largeText && smallImage == o.smallImage && smallText == o.smallText &&
-           startTimestamp == o.startTimestamp;
+           startTimestamp == o.startTimestamp && partySize == o.partySize && partyMax == o.partyMax;
 }
 
 bool DiscordClient::loadSdk(const std::wstring& searchDir)
@@ -102,6 +102,13 @@ void DiscordClient::setPresence(const Presence& p)
     copyField(activity.assets.small_image, p.smallImage);
     copyField(activity.assets.small_text, p.smallText);
     activity.timestamps.start = p.startTimestamp;
+    if (p.partySize > 0)
+    {
+        // Discord only shows the party size when the party has an ID.
+        copyField(activity.party.id, "doa5lr-lobby");
+        activity.party.size.current_size = p.partySize;
+        activity.party.size.max_size = p.partyMax;
+    }
 
     m_activities->update_activity(m_activities, &activity, nullptr, onActivityUpdated);
 }

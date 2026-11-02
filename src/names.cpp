@@ -85,7 +85,7 @@ const std::unordered_map<uint32_t, const char*> kStageImages = {
     {0x18, "stage_temple_of_the_dragon"},
     {0x19, "stage_sakura"},
     {0x1A, "stage_fighting_entertainment"},
-    {0x1A, "stage_dojo"},
+    {0x1B, "stage_dojo"},
     {0x1D, "stage_sweat"},
     {0x1E, "stage_dead_or_alive"},
     {0x21, "stage_zack_island"},
@@ -128,7 +128,11 @@ const char* difficultyName(uint32_t level) {
     return level < 2 * count ? kDifficulties[level % count] : nullptr;
 }
 
-bool isSpectatorMode(uint32_t mode) { return mode == 0x0F; }
+bool isWatchMode(uint32_t mode) { return mode == 0x0F; }
+
+bool isOnlineScreen(uint32_t screen) {
+    return screen == 20 || screen == 21 || screen == 27 || screen == 70;
+}
 
 const char* screenName(uint32_t screen) {
     switch (screen) {

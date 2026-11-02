@@ -32,6 +32,17 @@ std::optional<uint32_t> read32(uint32_t offset) {
     return value;
 }
 
+// Number of used entries in the online lobby connection table.
+std::optional<uint32_t> countLobbyMembers() {
+    uint32_t count = 0;
+    for (uint32_t i = 0; i < addr::kLobbyEntryCount; ++i) {
+        auto index = read32(addr::kLobbyEntries + i * addr::kLobbyEntrySize);
+        if (!index) return std::nullopt;
+        if (*index != 0xFFFFFFFF) ++count;
+    }
+    return count;
+}
+
 } // namespace
 
 bool GameSnapshot::operator==(const GameSnapshot& o) const {
@@ -39,9 +50,11 @@ bool GameSnapshot::operator==(const GameSnapshot& o) const {
            p1TagCharacter == o.p1TagCharacter && p2TagCharacter == o.p2TagCharacter &&
            p1PickStep == o.p1PickStep && p2PickStep == o.p2PickStep &&
            p1ActiveCharacter == o.p1ActiveCharacter && p2ActiveCharacter == o.p2ActiveCharacter &&
+           p1Controller == o.p1Controller && p2Controller == o.p2Controller &&
            stage == o.stage && localPlayerSide == o.localPlayerSide && gameMode == o.gameMode &&
            inMatch == o.inMatch && difficulty == o.difficulty && modeVariant == o.modeVariant &&
-           replay == o.replay && arcadeStage == o.arcadeStage && uiLayer == o.uiLayer;
+           replay == o.replay && arcadeStage == o.arcadeStage && uiLayer == o.uiLayer && spectating == o.spectating &&
+           lobbySlots == o.lobbySlots && playerLobby == o.playerLobby && lobbyMembers == o.lobbyMembers;
 }
 
 GameSnapshot readGame() {
@@ -54,6 +67,8 @@ GameSnapshot readGame() {
     s.p2PickStep = read(addr::kP2PickStep);
     s.p1ActiveCharacter = read(addr::kP1ActiveCharacter);
     s.p2ActiveCharacter = read(addr::kP2ActiveCharacter);
+    s.p1Controller = read(addr::kP1Controller);
+    s.p2Controller = read(addr::kP2Controller);
     s.stage = read(addr::kStage);
     s.localPlayerSide = read(addr::kLocalPlayerSide);
     s.gameMode = read(addr::kGameMode);
@@ -61,6 +76,10 @@ GameSnapshot readGame() {
     s.replay = read(addr::kReplay);
     s.arcadeStage = read(addr::kArcadeStage);
     s.uiLayer = read32(addr::kUiLayer);
+    s.spectating = read(addr::kSpectating);
+    s.lobbySlots = read(addr::kLobbySlots);
+    s.playerLobby = read(addr::kPlayerLobby);
+    if (s.lobbySlots.value_or(0) > 0) s.lobbyMembers = countLobbyMembers();
     if (s.gameMode) {
         if (auto difficulty = addr::difficultyFor(*s.gameMode)) s.difficulty = read(*difficulty);
         if (auto variant = addr::variantFor(*s.gameMode)) s.modeVariant = read(*variant);

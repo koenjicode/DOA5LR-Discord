@@ -11,6 +11,8 @@ struct Presence {
     std::string smallImage;
     std::string smallText;
     int64_t startTimestamp = 0; // unix seconds, 0 = no timer
+    int32_t partySize = 0;      // "(size of max)" next to the state; 0 = no party
+    int32_t partyMax = 0;
 
     bool operator==(const Presence& o) const;
     bool operator!=(const Presence& o) const { return !(*this == o); }
