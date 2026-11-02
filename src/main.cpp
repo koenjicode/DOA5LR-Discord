@@ -1,13 +1,17 @@
 #include "addresses.h"
+#include "config.h"
 #include "discord.h"
 #include "game.h"
 #include "log.h"
 #include "names.h"
 #include "settings.h"
+#include "steam.h"
 
 #include <Windows.h>
+#include <shellapi.h>
 #include <cstdio>
 #include <ctime>
+#include <iterator>
 
 namespace {
 
@@ -222,7 +226,7 @@ private:
     void buildDefaultImage(Presence& p)
     {
         p.largeImage = settings::kDefaultLargeImage;
-        p.largeText = "DOA5LRDiscord v.1.3.0";
+        p.largeText = "DOA5LRDiscord v.1.4.0";
     }
     
     // Build search data.
@@ -340,17 +344,56 @@ private:
     std::optional<uint32_t> m_lastSelected; // last real character under your cursor on character select
 };
 
+// DOA5LR's Steam app ID, used in steam://joinlobby links.
+constexpr const char* kSteamAppId = "311730";
+
+// In a lobby Steam knows about, lets Discord show a Join button. The secret is "<lobby>/<host>",
+// the two IDs of the game's own steam://joinlobby invite link. Steam takes a while after the
+// lobby is made to report it, so there's no button until then.
+void buildJoin(Presence& p)
+{
+    const uint64_t self = readGame64(addr::kLocalSteamId).value_or(0);
+    const auto lobby = self ? steam::lobbyOf(self) : std::nullopt;
+    if (!lobby) return;
+
+    p.partyId = std::to_string(*lobby);
+    p.joinSecret = p.partyId + "/" + std::to_string(self);
+}
+
+// Joiner's side of Discord's Join button: opens the host's lobby through Steam. The secret comes
+// from another player, so only two plain numbers are accepted, never an arbitrary link.
+void onJoin(const char* secret)
+{
+    const std::string s = secret ? secret : "";
+    const size_t slash = s.find('/');
+    const auto isNumber = [](const std::string& part) {
+        return !part.empty() && part.size() <= 20 &&
+               part.find_first_not_of("0123456789") == std::string::npos;
+    };
+    if (slash == std::string::npos || !isNumber(s.substr(0, slash)) || !isNumber(s.substr(slash + 1)))
+    {
+        LOG("Ignoring malformed join secret");
+        return;
+    }
+
+    const std::string link = std::string("steam://joinlobby/") + kSteamAppId + "/" + s;
+    LOG("Joining %s", link.c_str());
+    ShellExecuteA(nullptr, "open", link.c_str(), nullptr, nullptr, SW_SHOWNORMAL);
+}
+
 DWORD WINAPI worker(LPVOID) 
 {
     const std::wstring dir = moduleDir(g_module);
     if (settings::kWriteLog) logger::open(dir);
     LOG("DOA5Discord loaded, client id %lld", settings::kClientId);
+    config::load(dir);
 
     // Give the game a moment to finish starting before touching anything.
     Sleep(3000);
 
     DiscordClient discord;
     const bool sdkLoaded = discord.loadSdk(dir);
+    discord.setJoinHandler(onJoin);
 
     PresenceBuilder builder;
     GameSnapshot lastSnapshot;
@@ -366,14 +409,16 @@ DWORD WINAPI worker(LPVOID)
 
         Presence presence = builder.build(snapshot);
 
+        if (presence.partySize > 0) buildJoin(presence);
+
         if (sdkLoaded && discord.ensureConnected(settings::kClientId))
         {
             // Resend after a reconnect even if nothing changed.
             if (!wasConnected || firstTick || presence != lastPresence) 
             {
-                LOG("presence: details='%s' state='%s' large='%s' small='%s' start=%lld",
+                LOG("presence: details='%s' state='%s' large='%s' small='%s' start=%lld join='%s'",
                     presence.details.c_str(), presence.state.c_str(), presence.largeImage.c_str(),
-                    presence.smallImage.c_str(), presence.startTimestamp);
+                    presence.smallImage.c_str(), presence.startTimestamp, presence.joinSecret.c_str());
                 discord.setPresence(presence);
                 lastPresence = presence;
                 firstTick = false;

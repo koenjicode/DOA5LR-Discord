@@ -32,6 +32,17 @@ std::optional<uint32_t> read32(uint32_t offset) {
     return value;
 }
 
+} // namespace
+
+std::optional<uint64_t> readGame64(uint32_t offset) {
+    static const uintptr_t base = reinterpret_cast<uintptr_t>(GetModuleHandleW(nullptr));
+    uint64_t value = 0;
+    if (!safeRead(base + offset, &value, sizeof(value))) return std::nullopt;
+    return value;
+}
+
+namespace {
+
 // Number of used entries in the online lobby connection table.
 std::optional<uint32_t> countLobbyMembers() {
     uint32_t count = 0;

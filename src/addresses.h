@@ -63,6 +63,9 @@ constexpr uint32_t kLobbySlots = 0xF7A144;
 // so kLobbySlots alone can't tell them apart. Only meaningful while kLobbySlots > 0.
 constexpr uint32_t kPlayerLobby = 0xF81938;
 
+// Your Steam ID (8 bytes). 0xF819D4 and 0xF81F80 held it too while hosting a lobby.
+constexpr uint32_t kLocalSteamId = 0xF74178;
+
 // Online lobby connection table: kLobbyEntryCount entries of kLobbyEntrySize bytes, each
 // starting with a 4-byte index that is 0xFFFFFFFF when unused. The used entries add up to the
 // number of people in the lobby, you included. The indexes don't map cleanly onto the player

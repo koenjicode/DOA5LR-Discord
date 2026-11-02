@@ -9,10 +9,24 @@ using DiscordCreateFn = enum EDiscordResult(DISCORD_API*)(DiscordVersion, struct
 
 constexpr DWORD kReconnectDelayMs = 10000;
 
+// DOA5LR's Steam app ID.
+constexpr uint32_t kSteamAppId = 311730;
+
 void copyField(char (&dst)[128], const std::string& src) 
 {
     strncpy_s(dst, src.c_str(), _TRUNCATE);
 }
+
+DiscordClient::JoinHandler g_joinHandler = nullptr;
+
+void DISCORD_CALLBACK onActivityJoin(void*, const char* secret)
+{
+    LOG("Discord join: %s", secret);
+    if (g_joinHandler) g_joinHandler(secret);
+}
+
+// Has to outlive the Discord core, so it's static.
+IDiscordActivityEvents g_activityEvents{};
 
 void DISCORD_CALLBACK onActivityUpdated(void*, enum EDiscordResult result) 
     {
@@ -25,7 +39,8 @@ bool Presence::operator==(const Presence& o) const
 {
     return details == o.details && state == o.state && largeImage == o.largeImage &&
            largeText == o.largeText && smallImage == o.smallImage && smallText == o.smallText &&
-           startTimestamp == o.startTimestamp && partySize == o.partySize && partyMax == o.partyMax;
+           startTimestamp == o.startTimestamp && partySize == o.partySize && partyMax == o.partyMax &&
+           partyId == o.partyId && joinSecret == o.joinSecret;
 }
 
 bool DiscordClient::loadSdk(const std::wstring& searchDir)
@@ -61,6 +76,8 @@ bool DiscordClient::ensureConnected(int64_t clientId)
     DiscordCreateParamsSetDefault(&params);
     params.client_id = clientId;
     params.flags = DiscordCreateFlags_NoRequireDiscord; // never let the SDK close the game
+    g_activityEvents.on_activity_join = onActivityJoin;
+    params.activity_events = &g_activityEvents;
 
     auto create = reinterpret_cast<DiscordCreateFn>(m_createFn);
     EDiscordResult result = create(DISCORD_VERSION, &params, &m_core);
@@ -73,6 +90,8 @@ bool DiscordClient::ensureConnected(int64_t clientId)
     }
 
     m_activities = m_core->get_activity_manager(m_core);
+    // Lets Discord start the game through Steam for someone who clicks Join without it running.
+    m_activities->register_steam(m_activities, kSteamAppId);
     m_failureLogged = false;
     LOG("Connected to Discord");
     return true;
@@ -105,12 +124,18 @@ void DiscordClient::setPresence(const Presence& p)
     if (p.partySize > 0)
     {
         // Discord only shows the party size when the party has an ID.
-        copyField(activity.party.id, "doa5lr-lobby");
+        copyField(activity.party.id, p.partyId.empty() ? "doa5lr-lobby" : p.partyId);
         activity.party.size.current_size = p.partySize;
         activity.party.size.max_size = p.partyMax;
     }
+    if (!p.joinSecret.empty()) copyField(activity.secrets.join, p.joinSecret);
 
     m_activities->update_activity(m_activities, &activity, nullptr, onActivityUpdated);
+}
+
+void DiscordClient::setJoinHandler(JoinHandler handler)
+{
+    g_joinHandler = handler;
 }
 
 void DiscordClient::disconnect() 

@@ -13,6 +13,8 @@ struct Presence {
     int64_t startTimestamp = 0; // unix seconds, 0 = no timer
     int32_t partySize = 0;      // "(size of max)" next to the state; 0 = no party
     int32_t partyMax = 0;
+    std::string partyId;        // identifies the party to Discord; empty = a fixed ID
+    std::string joinSecret;     // non-empty shows Discord's Join button; handed to the joiner's game
 
     bool operator==(const Presence& o) const;
     bool operator!=(const Presence& o) const { return !(*this == o); }
@@ -30,6 +32,10 @@ public:
     bool ensureConnected(int64_t clientId);
     void runCallbacks();
     void setPresence(const Presence& presence);
+
+    // Called on the joiner's side with the host's joinSecret after they click Join in Discord.
+    using JoinHandler = void (*)(const char* secret);
+    void setJoinHandler(JoinHandler handler);
 
 private:
     void disconnect();

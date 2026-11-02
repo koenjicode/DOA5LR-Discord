@@ -34,3 +34,6 @@ struct GameSnapshot {
 };
 
 GameSnapshot readGame();
+
+// Reads the 8-byte value at game.exe + offset.
+std::optional<uint64_t> readGame64(uint32_t offset);
