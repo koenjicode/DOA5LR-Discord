@@ -14,7 +14,7 @@ namespace {
 constexpr char kDefaultIni[] =
     "[general]\r\n"
     "; Cover art used as the default large image:\r\n"
-    ";   default, default_jp, ultimate, ultimate_jp or vanilla\r\n"
+    "; default, default_jp, ultimate, ultimate_jp or vanilla\r\n"
     "Cover=default\r\n"
     "\r\n"
     "; Show your character's large art as the large image in battles and on character select,\r\n"
