@@ -225,8 +225,20 @@ private:
 
     void buildDefaultImage(Presence& p)
     {
-        p.largeImage = settings::kDefaultLargeImage;
-        p.largeText = "DOA5LRDiscord v.1.4.0";
+        p.largeImage = coverImage(config::get().cover);
+        p.largeText = std::string("DOA5LRDiscord v.") + settings::kVersion;
+    }
+
+    static const char* coverImage(config::Cover cover)
+    {
+        switch (cover)
+        {
+        case config::Cover::DefaultJp: return settings::kDefaultJpLargeImage;
+        case config::Cover::Ultimate: return settings::kUltimateLargeImage;
+        case config::Cover::UltimateJp: return settings::kUltimateJpLargeImage;
+        case config::Cover::Vanilla: return settings::kVanillaLargeImage;
+        default: return settings::kDefaultLargeImage;
+        }
     }
     
     // Build search data.
@@ -385,7 +397,7 @@ DWORD WINAPI worker(LPVOID)
 {
     const std::wstring dir = moduleDir(g_module);
     if (settings::kWriteLog) logger::open(dir);
-    LOG("DOA5Discord loaded, client id %lld", settings::kClientId);
+    LOG("DOA5Discord v%s loaded, client id %lld", settings::kVersion, settings::kClientId);
     config::load(dir);
 
     // Give the game a moment to finish starting before touching anything.
