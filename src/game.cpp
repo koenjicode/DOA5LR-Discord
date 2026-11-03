@@ -62,6 +62,7 @@ bool GameSnapshot::operator==(const GameSnapshot& o) const {
            p1PickStep == o.p1PickStep && p2PickStep == o.p2PickStep && tagSelect == o.tagSelect &&
            p1ActiveCharacter == o.p1ActiveCharacter && p2ActiveCharacter == o.p2ActiveCharacter &&
            p1Controller == o.p1Controller && p2Controller == o.p2Controller &&
+           p1PartnerController == o.p1PartnerController && p2PartnerController == o.p2PartnerController &&
            stage == o.stage && localPlayerSide == o.localPlayerSide && gameMode == o.gameMode &&
            inMatch == o.inMatch && difficulty == o.difficulty && modeVariant == o.modeVariant &&
            replay == o.replay && arcadeStage == o.arcadeStage && uiLayer == o.uiLayer && spectating == o.spectating &&
