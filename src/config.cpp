@@ -13,12 +13,12 @@ namespace {
 // Written as DOA5Discord.ini when there isn't one, so it doubles as the documentation.
 constexpr char kDefaultIni[] =
     "[general]\r\n"
-    "; Cover art used as the default large image:\r\n"
-    "; default, default_jp, ultimate, ultimate_jp or vanilla\r\n"
+    "; The cover art that is used as the default large image\r\n"
+    "; Available options: (default, default_jp, ultimate, ultimate_jp, vanilla)\r\n"
     "Cover=default\r\n"
     "\r\n"
-    "; Show your character's large art as the large image in battles and on character select,\r\n"
-    "; instead of the stage or cover art (1 = yes, 0 = no).\r\n"
+    "; Show your character's large art as the large image in battles\r\n"
+    "; instead of the stage or cover art: (1 = yes, 0 = no)\r\n"
     "LargeCharacterIcons=0\r\n"
     ;
 
