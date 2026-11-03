@@ -1,5 +1,6 @@
 #include "config.h"
 #include "log.h"
+#include "settings.h"
 
 #include <Windows.h>
 #include <cwctype>
@@ -87,6 +88,13 @@ const char* coverName(Cover cover)
 
 void load(const std::wstring& dir)
 {
+    if (!settings::kEnableConfig)
+    {
+        g_config = Config{};
+        LOG("config: disabled, using defaults");
+        return;
+    }
+
     g_path = dir + L"\\DOA5Discord.ini";
     if (!fileExists(g_path)) writeDefaults(g_path);
 
