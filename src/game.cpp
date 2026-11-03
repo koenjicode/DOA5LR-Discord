@@ -59,7 +59,7 @@ std::optional<uint32_t> countLobbyMembers() {
 bool GameSnapshot::operator==(const GameSnapshot& o) const {
     return p1Character == o.p1Character && p2Character == o.p2Character &&
            p1TagCharacter == o.p1TagCharacter && p2TagCharacter == o.p2TagCharacter &&
-           p1PickStep == o.p1PickStep && p2PickStep == o.p2PickStep &&
+           p1PickStep == o.p1PickStep && p2PickStep == o.p2PickStep && tagSelect == o.tagSelect &&
            p1ActiveCharacter == o.p1ActiveCharacter && p2ActiveCharacter == o.p2ActiveCharacter &&
            p1Controller == o.p1Controller && p2Controller == o.p2Controller &&
            stage == o.stage && localPlayerSide == o.localPlayerSide && gameMode == o.gameMode &&
@@ -76,10 +76,13 @@ GameSnapshot readGame() {
     s.p2TagCharacter = read(addr::kP2TagCharacter);
     s.p1PickStep = read(addr::kP1PickStep);
     s.p2PickStep = read(addr::kP2PickStep);
+    s.tagSelect = read(addr::kTagSelect);
     s.p1ActiveCharacter = read(addr::kP1ActiveCharacter);
     s.p2ActiveCharacter = read(addr::kP2ActiveCharacter);
     s.p1Controller = read(addr::kP1Controller);
+    s.p1PartnerController = read(addr::kP1PartnerController);
     s.p2Controller = read(addr::kP2Controller);
+    s.p2PartnerController = read(addr::kP2PartnerController);
     s.stage = read(addr::kStage);
     s.localPlayerSide = read(addr::kLocalPlayerSide);
     s.gameMode = read(addr::kGameMode);

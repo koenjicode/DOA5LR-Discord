@@ -49,9 +49,10 @@ std::string optToString(const std::optional<uint32_t>& v)
 
 void logSnapshot(const GameSnapshot& s) 
 {
-    LOG("p1=%s p1active=%s p2=%s p2active=%s stage=%s side=%s mode=%s variant=%s inMatch=%s difficulty=%s replay=%s arcadeStage=%s ui=%s spectating=%s lobby=%s/%s",
-        optToString(s.p1Character).c_str(), optToString(s.p1ActiveCharacter).c_str(),
-        optToString(s.p2Character).c_str(), optToString(s.p2ActiveCharacter).c_str(),
+    LOG("p1=%s p1active=%s p1tag=%s p2=%s p2active=%s p2tag=%s step=%s/%s tagSelect=%s stage=%s side=%s mode=%s variant=%s inMatch=%s difficulty=%s replay=%s arcadeStage=%s ui=%s spectating=%s lobby=%s/%s",
+        optToString(s.p1Character).c_str(), optToString(s.p1ActiveCharacter).c_str(), optToString(s.p1TagCharacter).c_str(),
+        optToString(s.p2Character).c_str(), optToString(s.p2ActiveCharacter).c_str(), optToString(s.p2TagCharacter).c_str(),
+        optToString(s.p1PickStep).c_str(), optToString(s.p2PickStep).c_str(), optToString(s.tagSelect).c_str(),
         optToString(s.stage).c_str(), optToString(s.localPlayerSide).c_str(),
         optToString(s.gameMode).c_str(), optToString(s.modeVariant).c_str(),
         optToString(s.inMatch).c_str(), optToString(s.difficulty).c_str(), optToString(s.replay).c_str(), optToString(s.arcadeStage).c_str(),
@@ -62,6 +63,15 @@ void logSnapshot(const GameSnapshot& s)
 std::optional<uint32_t> onScreen(const std::optional<uint32_t>& active, const std::optional<uint32_t>& slot) 
 {
     return active && characterName(*active) ? active : slot;
+}
+
+// Tag matches: the fighter waiting to tag in (the one of your two picks that isn't on screen).
+// nullopt outside tag matches.
+std::optional<uint32_t> offScreen(const std::optional<uint32_t>& active, const std::optional<uint32_t>& first,
+                                  const std::optional<uint32_t>& tag)
+{
+    if (!tag || !characterName(*tag)) return std::nullopt;
+    return onScreen(active, first) == tag ? first : tag;
 }
 
 // Game mode IDs (addr::kGameMode) the presence treats specially.
@@ -85,12 +95,12 @@ public:
     {
         // The fight flag is set as soon as loading starts, while the stage and characters are still
         // stale; the UI layer stays at kLoading until the fight is actually loaded.
-        const uint32_t ui = s.uiLayer.value_or(0);
-        const bool inBattle = s.inMatch.value_or(0) != 0 && s.stage != kNoStage;
+        const uint32_t ui = s.uiLayer.value_or(0xFF);
+        const bool inBattle = s.inMatch.value_or(0) != 0 && s.stage != kNoStage || isOnlineScreen(ui);
 
         // The timer only runs during a battle, restarting with each one.
-        if (inBattle && !m_wasInBattle) m_battleStart = static_cast<int64_t>(time(nullptr));
-        if (!inBattle) m_battleStart = 0;
+        if (inBattle && !m_wasInBattle) m_battleStartTime = time(nullptr);
+        if (!inBattle && m_wasInBattle) m_battleStartTime = 0;
         m_wasInBattle = inBattle;
 
         Presence p;
@@ -113,15 +123,48 @@ private:
     }
     
     // Is ranked match: ranked runs on a hidden 2-slot lobby that isn't a player-made one.
-    static bool isRanked(const GameSnapshot& s)
+    static bool isRankedLobby(const GameSnapshot& s)
     {
         return s.lobbySlots.value_or(0) > 0 && s.playerLobby.value_or(1) == 0;
+    }
+    
+    static bool isP2(const GameSnapshot& s)
+    {
+        return s.localPlayerSide.value_or(0) == 1;
+    }
+    
+    // Checks if a character is registered in both tag slots.
+    static bool isTag(const GameSnapshot& s)
+    {
+        return s.p1TagCharacter != kNoCharacter && s.p2TagCharacter != kNoCharacter || s.tagSelect.value_or(0) == 1;
+    }
+    
+    static int getLocalControllerCount(const GameSnapshot& s)
+    {
+        int count = 0;
+        if (s.p1Controller.value_or(0xFF) != 0xFF) {count += 1;}
+        if (s.p1PartnerController.value_or(0xFF) != 0xFF) {count += 1;}
+        if (s.p2Controller.value_or(0xFF) != 0xFF) {count += 1;}
+        if (s.p2PartnerController.value_or(0xFF) != 0xFF) {count += 1;}
+        return count;
+    }
+    
+    static bool isOnlyLocal(const GameSnapshot& s)
+    {
+        return getLocalControllerCount(s) <= 1;
+    }
+    
+    static bool isLocalVersus(const GameSnapshot& s)
+    {
+        bool p1Human = s.p1Controller.value_or(0xFF) != 0xFF || s.p1PartnerController.value_or(0xFF) != 0xFF;
+        bool p2Human = s.p2Controller.value_or(0xFF) != 0xFF || s.p2PartnerController.value_or(0xFF) != 0xFF;
+        return p1Human && p2Human;
     }
 
     // is a player lobby.
     static bool isInLobby(const GameSnapshot& s)
     {
-        return s.uiLayer.value_or(0) != 21 && !isRanked(s) && s.lobbySlots.value_or(0) > 0;
+        return s.uiLayer.value_or(0) != 21 && !isRankedLobby(s) && s.lobbySlots.value_or(0) > 0;
     }
 
     // State line on every screen: where you're playing. Online lobbies read "In a Lobby" so Discord's
@@ -129,7 +172,7 @@ private:
     std::string locationLabel(const GameSnapshot& s, bool inBattle) const
     {
         if (isInLobby(s)) return "In a Lobby";
-        if (isRanked(s)) return "Online";
+        if (isRankedLobby(s)) return "Online";
         if (!inBattle) return s.uiLayer && isOnlineScreen(*s.uiLayer) ? "Online" : "Offline";
 
         if (s.replay.value_or(0) != 0) return "Offline";
@@ -140,9 +183,8 @@ private:
 
         if (s.gameMode == kVersusMode)
         {
-            const bool cpu = s.p1Controller.value_or(0) == kCpuController ||
-                             s.p2Controller.value_or(0) == kCpuController;
-            return cpu ? "Vs CPU" : "Local Match";
+            if (!isLocalVersus(s)) { return isDuo(s) ? "VS CPU w/ Partner" : "VS CPU"; }
+            return"Local Match";
         }
         return "Offline";
     }
@@ -158,24 +200,33 @@ private:
     // What your side is doing on character select.
     struct CharacterPick
     {
-        std::optional<uint32_t> first;   // your first character (the cursor, while picking it)
+        std::optional<uint32_t> main;   // your first character (the cursor, while picking it)
         std::optional<uint32_t> partner; // the tag partner under the cursor, while picking it
-        bool choosingPartner = false;
+        bool dualSelection = false; // are both players selecting at the same time.
+        bool choosingPartner = false; // choosing partner character.
     };
+    
+    static bool isDuo(const GameSnapshot& s)
+    {
+        if (isP2(s)) { return s.p2Controller.value_or(0xFF) != 0xFF && s.p2PartnerController.value_or(0xFF) != 0xFF; }
+        return s.p1Controller.value_or(0xFF) != 0xFF && s.p1PartnerController.value_or(0xFF) != 0xFF;
+    }
 
     // Reads your side's pick: the slot follows the cursor while you pick your first character,
     // and the tag slot follows it while you pick your partner.
     CharacterPick characterPick(const GameSnapshot& s) const
     {
-        const bool onP2Side = s.localPlayerSide.value_or(0) == 1;
+        const bool onP2Side = isP2(s);
         const auto& step = onP2Side ? s.p2PickStep : s.p1PickStep;
 
         CharacterPick pick;
-        pick.first = onP2Side ? s.p2Character : s.p1Character;
+        pick.main = onP2Side ? s.p2Character : s.p1Character;
         pick.partner = onP2Side ? s.p2TagCharacter : s.p1TagCharacter;
-        pick.choosingPartner = step.value_or(0xFF) == 1 && pick.partner != kNoCharacter;
+        pick.dualSelection = isDuo(s);
+        pick.choosingPartner = s.tagSelect.value_or(0) == 1 && step.value_or(0xFF) == 1;
         return pick;
     }
+    
 
     static bool isKnownCharacter(const std::optional<uint32_t>& id)
     {
@@ -186,21 +237,43 @@ private:
     Presence buildCharacterSelect(const GameSnapshot& s)
     {
         const CharacterPick pick = characterPick(s);
-
-        // The cursor is the partner while picking one, otherwise the first character. Keep the
-        // last real pick so the image doesn't flicker when a slot briefly reads empty.
-        auto selectChar = pick.choosingPartner ? pick.partner : pick.first;
-        if (isKnownCharacter(selectChar)) m_lastSelected = selectChar;
-        else selectChar = m_lastSelected;
-
+        
         Presence p;
-        p.details = pick.choosingPartner ? "Choosing a Partner" : "Choosing a Character";
-        buildDefaultImage(p);
-
-        if (isKnownCharacter(selectChar))
+        if (isLocalVersus(s))
         {
-            p.smallImage = assetKey(characterName(*selectChar));
-            p.smallText = characterLabel(*selectChar);
+            p.details = "Choosing Characters";
+        }
+        else if (isTag(s))
+        {
+            if (pick.dualSelection)
+            {
+               p.details = "Choosing a Tag Team";
+            }
+            else
+            {
+                p.details = pick.choosingPartner ? "Choosing a Partner" : "Choosing a Main Character";
+            }
+        }
+        else
+        {
+            p.details = "Choosing a Character";
+        }
+        
+        m_lastMain = pick.main != kNoCharacter ? pick.main : m_lastMain;
+        m_lastPartner = pick.partner != kNoCharacter ? pick.partner : m_lastPartner;
+        
+        // Build a main character and the partner underneath them.
+        if (isOnlyLocal(s) && isKnownCharacter(m_lastMain))
+        {
+            buildLargeCharacterImage(m_lastMain, p);
+            if (pick.choosingPartner && isKnownCharacter(m_lastPartner))
+            {
+                buildCharacterImage(m_lastPartner, p);
+            }
+        }
+        else
+        {
+            buildDefaultImage(p);
         }
 
         return p;
@@ -212,13 +285,8 @@ private:
         const char* stage = s.stage ? stageName(*s.stage) : nullptr;
         
         Presence p;
-        p.details = isRanked(s) ? "Randomizing Stage" : "Choosing a Stage";
+        p.details = isRankedLobby(s) ? "Randomizing Stage" : "Choosing a Stage";
         buildStageImage(s, stage, p);
-        
-        if (isKnownCharacter(m_lastSelected))
-        {
-            buildCharacterImage(m_lastSelected, p);
-        }
         
         return p;
     }
@@ -280,6 +348,13 @@ private:
         p.smallText = characterLabel(*mainChar);
     }
 
+    // Builds character images but with a "large" postfix.
+    void buildLargeCharacterImage(std::optional<uint32_t> character, Presence& p)
+    {
+        p.largeImage = assetKey(characterName(*character)) + "_large";
+        p.largeText = characterLabel(*character);
+    }
+
     // A loaded fight (or replay / Watch Mode): mode, stage image, your character and the timer.
     Presence buildBattle(const GameSnapshot& s)
     {
@@ -290,16 +365,39 @@ private:
 
         Presence p;
         p.details = battleLabel(s);
-        p.startTimestamp = m_battleStart;
+        p.startTimestamp = m_battleStartTime;
 
         const bool isReplay = s.replay.value_or(0) != 0;
         // Replays, Watch Mode and online matches you're only watching have no character of yours.
         const bool spectating = isReplay || (s.gameMode && isWatchMode(*s.gameMode)) ||
                                 s.spectating.value_or(0) != 0;
 
-        buildStageImage(s, stage, p);
-        if (!spectating && hasChar && characterName(*mainChar)) {
-            buildCharacterImage(mainChar, p);
+        if (config::get().largeCharacterIcons)
+        {
+            if (!spectating && isOnlyLocal(s) && hasChar && characterName(*mainChar))
+            {
+                buildLargeCharacterImage(mainChar, p);
+                if (stage) p.largeText += std::string(" in ") + stage;
+                if (isTag(s))
+                {
+                    auto partnerChar = onP2Side ? offScreen(s.p2ActiveCharacter, s.p2Character, s.p2TagCharacter) : offScreen(s.p1ActiveCharacter, s.p1Character, s.p1TagCharacter);
+                    if (isKnownCharacter(partnerChar))
+                    {
+                        buildCharacterImage(partnerChar, p);
+                    }
+                }
+            }
+            else
+            {
+                buildStageImage(s, stage, p);
+            }
+        }
+        else
+        {
+            buildStageImage(s, stage, p);
+            if (!spectating && isOnlyLocal(s) && hasChar && characterName(*mainChar)) {
+                buildCharacterImage(mainChar, p);
+            }
         }
 
         return p;
@@ -314,16 +412,23 @@ private:
         const uint32_t mode = *s.gameMode;
         if (mode == kOnlineMode)
         {
-            if (isRanked(s)) return "Playing Rank Match";
+            if (isRankedLobby(s)) return "Playing Rank Match";
             if (!isInLobby(s)) return "Playing Online Match";
             return s.spectating.value_or(0) != 0 ? "Spectating Lobby Match" : "Playing Lobby Match";
         }
+        
+        // TODO: Command training should just say Practicing without a label.
 
         const char* name = gameModeName(mode, s.modeVariant);
         const std::string label = name ? name : hexId("Game Mode", mode);
+        const std::string tagLabel = !isTag(s) ? "Solo" : "Tag";
         if (isWatchMode(mode)) return "In " + label;
         if (mode == kTutorialMode) return "Playing the " + label;
-        if (mode == kTrainingMode || mode == kComboChallengeMode) return "Practicing in " + label;
+        if (mode == kTrainingMode || mode == kComboChallengeMode)
+        {
+            if (mode == kTrainingMode && s.modeVariant != 1) { return "Practicing " + tagLabel + " in " + label; }
+            return "Practicing in " + label;
+        }
         return "Playing " + label;
     }
 
@@ -352,8 +457,9 @@ private:
     }
 
     bool m_wasInBattle = false;
-    int64_t m_battleStart = 0;
-    std::optional<uint32_t> m_lastSelected; // last real character under your cursor on character select
+    int64_t m_battleStartTime = 0;
+    std::optional<uint32_t> m_lastPartner; // last real character under your cursor on character select
+    std::optional<uint32_t> m_lastMain;    // last real first pick on character select
 };
 
 // DOA5LR's Steam app ID, used in steam://joinlobby links.

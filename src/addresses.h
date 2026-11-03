@@ -21,13 +21,19 @@ constexpr uint32_t kP2TagCharacter = 0x2053F72;
 constexpr uint32_t kP1PickStep = 0xFBB170;
 constexpr uint32_t kP2PickStep = 0xFBC320;
 
+// Character select type: 1 = tag (pick a partner too), 0 = solo, 0xFF when not on character
+// select. Unlike the tag battle flag (0xFCDAAE) it's set from the first pick on.
+constexpr uint32_t kTagSelect = 0xEC3DB0;
+
 // Each team's character currently on screen.
 constexpr uint32_t kP1ActiveCharacter = 0xFCED80;
 constexpr uint32_t kP2ActiveCharacter = 0xFCEDB4;
 
 // Controller driving each side, 0xFF for the CPU.
 constexpr uint32_t kP1Controller = 0x10877B8;
+constexpr uint32_t kP1PartnerController = 0x10877BA;
 constexpr uint32_t kP2Controller = 0x10877B9;
+constexpr uint32_t kP2PartnerController = 0x10877BB;
 
 // Current stage.
 constexpr uint32_t kStage = 0xDA442C;

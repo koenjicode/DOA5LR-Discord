@@ -20,6 +20,12 @@ const char* difficultyName(uint32_t level);
 // Name of a menu screen (addr::kUiLayer), or nullptr for one that hasn't been identified.
 const char* screenName(uint32_t screen);
 
+// Menu screens that indicate the game is within a paused state.
+bool isPauseScreen(uint32_t screen);
+
+// Menu screens that only exist during battle.
+bool isBattleScreen(uint32_t screen);
+
 // Menu screens that only exist online (online menu, lobby, leaderboards).
 bool isOnlineScreen(uint32_t screen);
 

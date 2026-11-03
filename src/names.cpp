@@ -114,6 +114,7 @@ const char* lookup(const std::unordered_map<uint32_t, const char*>& table, uint3
 } // namespace
 
 const char* characterName(uint32_t id) { return lookup(kCharacters, id); }
+
 const char* stageName(uint32_t id) { return lookup(kStages, id); }
 const char* stageImage(uint32_t stage) { return lookup(kStageImages, stage); }
 
@@ -131,6 +132,14 @@ const char* difficultyName(uint32_t level) {
 
 bool isWatchMode(uint32_t mode) { return mode == 0x0F; }
 
+bool isPauseScreen(uint32_t screen) {
+    return screen == 52 || screen == 55;
+}
+
+bool isBattleScreen(uint32_t screen) {
+    return screen == 0 || screen == 14 || screen == 11;
+}
+
 bool isOnlineScreen(uint32_t screen) {
     return screen == 20 || screen == 21 || screen == 27 || screen == 70;
 }
@@ -147,6 +156,8 @@ const char* screenName(uint32_t screen) {
     case 21: return "In Online Menu";
     case 24: return "Searching for a Lobby...";
     case 27: return "Waiting in Lobby";
+    case 52: return "Viewing Command List";
+    case 55: return "Paused in Training Mode";
     case 70: return "Leaderboards";
     case 76: // top level
     case 77: return "Customizing Music";

@@ -16,6 +16,10 @@ constexpr char kDefaultIni[] =
     "; Cover art used as the default large image:\r\n"
     ";   default, default_jp, ultimate, ultimate_jp or vanilla\r\n"
     "Cover=default\r\n"
+    "\r\n"
+    "; Show your character's large art as the large image in battles and on character select,\r\n"
+    "; instead of the stage or cover art (1 = yes, 0 = no).\r\n"
+    "LargeCharacterIcons=0\r\n"
     ;
 
 Config g_config;

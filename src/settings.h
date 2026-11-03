@@ -21,9 +21,9 @@ constexpr const char* kVanillaLargeImage = "logo_original";
 constexpr unsigned kUpdateIntervalMs = 500;
 
 // Write DOA5Discord.log next to the .asi with every value change.
-constexpr bool kWriteLog = false;
+constexpr bool kWriteLog = true;
 
 // Read (and create) DOA5Discord.ini. When off, the ini is ignored and every option uses its default.
-constexpr bool kEnableConfig = false;
+constexpr bool kEnableConfig = true;
 
 }

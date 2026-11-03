@@ -11,10 +11,13 @@ struct GameSnapshot {
     std::optional<uint32_t> p2TagCharacter;
     std::optional<uint32_t> p1PickStep;
     std::optional<uint32_t> p2PickStep;
+    std::optional<uint32_t> tagSelect;
     std::optional<uint32_t> p1ActiveCharacter;
     std::optional<uint32_t> p2ActiveCharacter;
     std::optional<uint32_t> p1Controller;
+    std::optional<uint32_t> p1PartnerController;
     std::optional<uint32_t> p2Controller;
+    std::optional<uint32_t> p2PartnerController;
     std::optional<uint32_t> stage;
     std::optional<uint32_t> localPlayerSide;
     std::optional<uint32_t> gameMode;
