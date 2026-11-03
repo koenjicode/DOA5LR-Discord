@@ -21,6 +21,8 @@ add_library(DOA5Discord SHARED
     src/main.cpp
     src/addresses.cpp
     src/addresses.h
+    src/config.cpp
+    src/config.h
     src/game.cpp
     src/game.h
     src/names.cpp
@@ -30,6 +32,8 @@ add_library(DOA5Discord SHARED
     src/log.cpp
     src/log.h
     src/settings.h
+    src/steam.cpp
+    src/steam.h
 )
 
 set_target_properties(DOA5Discord PROPERTIES SUFFIX ".asi")
