@@ -1,9 +1,34 @@
-# DOA5LR-Discord
+<div align="center">
+  
+  # DOA5LR Rich Presence for Discord
 
-Discord Rich Presence for **DEAD OR ALIVE 5 Last Round**.
-This is an ASI plugin that reads static addresses in the game's memory and displays them on Discord.
+  Unofficial Discord Rich Presence for the STEAM release of <a href="https://store.steampowered.com/app/311730/DEAD_OR_ALIVE_5_Last_Round_Core_Fighters/">DEAD OR ALIVE 5 Last Round</a>.
 
-![](images/screenshot.png)
+  [![Latest Release](https://img.shields.io/github/v/release/koenjicode/DOA5LR-Discord?label=release&style=flat-square)](https://github.com/koenjicode/DOA5LR-Discord/releases/latest)
+  [![Last Commit](https://img.shields.io/github/last-commit/koenjicode/DOA5LR-Discord?style=flat-square)](https://github.com/koenjicode/DOA5LR-Discord/commits/main)
+  [![Platform](https://img.shields.io/badge/platform-Windows%20%7C%20Linux-lightgray?style=flat-square)](https://github.com/koenjicode/DOA5LR-Discord/releases/latest)
+  [![License](https://img.shields.io/github/license/koenjicode/DOA5LR-Discord?style=flat-square)](https://github.com/koenjicode/DOA5LR-Discord/blob/main/LICENSE)
+
+</div>
+
+> [!WARNING]
+> This is an ASI plugin that reads static addresses in the game's memory and displays them on Discord.
+> Releases of DOA5LR-Discord will include the ASI loader, but you may already have it if you've installed DOARevolution.
+> Your antivirus may flag the required .dll as a virus. If this occurs, add the .dll to your exclusions.
+
+## Preview
+
+<div align="center">
+  <img src="images/screenshot.png" alt="Dead Or Alive 5 Last Round Discord Rich Presence showing state-related information (Character and Stage) in a Lobby match with 2 other players." height="135">
+  <img src="images/screenshot_5.png" alt="Dead Or Alive 5 Last Round Discord Rich Presence showing state-related information (Character and Stage) in a Lobby match with 2 other players." height="135">
+</div>
+
+## Features
+- Detailed Rich Presence state breakdown that updates live in matches.
+- Unique Small and Large icons for all 36 characters.
+- 5 selectable fallback images: Default, Default JP, Ultimate, Ultimate JP & Vanilla.
+- Ability to join lobbies directly through Discord.
+- Configurable .ini to adjust presentation.
 
 ## Install
 
