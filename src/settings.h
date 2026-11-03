@@ -10,6 +10,9 @@ constexpr const char* kVersion = "1.5.0";
 // Discord application ID.
 constexpr int64_t kClientId = 1564444889482264639;
     
+// DOA5LR's Steam app ID, used in steam://joinlobby links.
+constexpr const char* kSteamAppId = "311730";
+    
 // Default icon for each config Cover option.
 constexpr const char* kDefaultLargeImage = "logo";
 constexpr const char* kDefaultJpLargeImage = "logo_jp";

@@ -77,6 +77,7 @@ std::optional<uint32_t> offScreen(const std::optional<uint32_t>& active, const s
 // Game mode IDs (addr::kGameMode) the presence treats specially.
 constexpr uint32_t kVersusMode = 0x01;
 constexpr uint32_t kArcadeMode = 0x02;
+constexpr uint32_t kTimeAttackMode = 0x03;
 constexpr uint32_t kSurvivalMode = 0x04;
 constexpr uint32_t kTrainingMode = 0x05;
 constexpr uint32_t kOnlineMode = 0x08;
@@ -177,9 +178,13 @@ private:
 
         if (s.replay.value_or(0) != 0) return "Offline";
         if (s.gameMode == kOnlineMode) return "Online";
-
-        const std::string progress = progressLabel(s);
-        if (!progress.empty()) return progress;
+        
+        // If we're in any game mode that tracks a value, mark down the progress (if it's valid)
+        if (s.gameMode == kArcadeMode || s.gameMode == kTimeAttackMode || s.gameMode == kSurvivalMode)
+        {
+            const std::string progress = progressLabel(s);
+            if (!progress.empty()) return progress;
+        }
 
         if (s.gameMode == kVersusMode)
         {
@@ -417,41 +422,49 @@ private:
             return s.spectating.value_or(0) != 0 ? "Spectating Lobby Match" : "Playing Lobby Match";
         }
         
-        // TODO: Command training should just say Practicing without a label.
-
+        // TODO: At a later date, combine isTag into the gameModeName check to better support localised names.
+        const bool tag = isTag(s);
         const char* name = gameModeName(mode, s.modeVariant);
         const std::string label = name ? name : hexId("Game Mode", mode);
-        const std::string tagLabel = !isTag(s) ? "Solo" : "Tag";
         if (isWatchMode(mode)) return "In " + label;
         if (mode == kTutorialMode) return "Playing the " + label;
         if (mode == kTrainingMode || mode == kComboChallengeMode)
         {
+            const std::string tagLabel = tag ? "Solo" : "Tag";
             if (mode == kTrainingMode && s.modeVariant != 1) { return "Practicing " + tagLabel + " in " + label; }
             return "Practicing in " + label;
         }
+        if (tag) { return "Playing Tag " + label; }
         return "Playing " + label;
     }
+    
+    std::string buildArcadeStageLabel(const uint32_t count) const
+    {
+        return "Stage " + std::to_string(count + 1);
+    }
+    
+    std::string buildWinLabel(const uint32_t count) const
+    {
+        const std::string textAmount = std::to_string(count > 0 ? count - 1 : 0);
+        if (count == 1) { return textAmount + " Win"; }
+        return textAmount + " Wins";
+    }
 
-    // State line during a battle: "Stage 4 (Master)" in Arcade, "Defeated 14 (Master)" in Survival,
-    // just the difficulty in Time Attack, and empty otherwise.
+    // Return the current level of progress. 
+    // For Arcade and Time Attack it will present the Stage with the difficulty. "Stage 4 (Master)".
+    // For Survival, it will display your current number of wins.
     std::string progressLabel(const GameSnapshot& s) const
     {
-        // Only read for modes that have a difficulty (addr::difficultyFor).
         std::string difficulty;
         if (s.difficulty) {
             const char* name = difficultyName(*s.difficulty);
             difficulty = name ? name : "Level " + std::to_string(*s.difficulty + 1);
         }
-
-        // The same counter numbers Arcade stages from 0, and in Survival runs one ahead of the
-        // opponents beaten (it goes up as soon as the next opponent jumps in).
-        const bool arcade = s.gameMode == kArcadeMode;
-        const bool survival = s.gameMode == kSurvivalMode;
-        if (!(arcade || survival) || !s.arcadeStage) return difficulty;
-
+        
         const uint32_t count = *s.arcadeStage;
-        std::string label = arcade ? "Stage " + std::to_string(count + 1)
-                                   : "Defeated " + std::to_string(count > 0 ? count - 1 : 0);
+        const bool isSurvival = s.gameMode == kSurvivalMode;
+        
+        std::string label = !isSurvival ? buildArcadeStageLabel(count) : buildWinLabel(count);
         if (!difficulty.empty()) label += " (" + difficulty + ")";
         return label;
     }
@@ -461,9 +474,6 @@ private:
     std::optional<uint32_t> m_lastPartner; // last real character under your cursor on character select
     std::optional<uint32_t> m_lastMain;    // last real first pick on character select
 };
-
-// DOA5LR's Steam app ID, used in steam://joinlobby links.
-constexpr const char* kSteamAppId = "311730";
 
 // In a lobby Steam knows about, lets Discord show a Join button. The secret is "<lobby>/<host>",
 // the two IDs of the game's own steam://joinlobby invite link. Steam takes a while after the
@@ -494,7 +504,7 @@ void onJoin(const char* secret)
         return;
     }
 
-    const std::string link = std::string("steam://joinlobby/") + kSteamAppId + "/" + s;
+    const std::string link = std::string("steam://joinlobby/") + settings::kSteamAppId + "/" + s;
     LOG("Joining %s", link.c_str());
     ShellExecuteA(nullptr, "open", link.c_str(), nullptr, nullptr, SW_SHOWNORMAL);
 }

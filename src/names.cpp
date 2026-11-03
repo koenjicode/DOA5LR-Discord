@@ -51,7 +51,7 @@ const std::unordered_map<uint32_t, const char*> kStages = {
 const std::unordered_map<uint32_t, const char*> kGameModes = {
     {0x00, "Story Mode"},
     {0x01, "Versus Mode"},
-    {0x02, "Arcade Mode"},        {0x0201, "Tag Arcade Mode"},
+    {0x02, "Arcade Mode"},        {0x0201, "Arcade Mode"},
     {0x03, "Time Attack"},
     {0x04, "Survival Mode"},
     {0x05, "Training Mode"},      {0x0500, "Free Training"}, {0x0501, "Command Training"},
@@ -150,15 +150,15 @@ const char* screenName(uint32_t screen) {
     case 5:  return "Stage Select";
     case 9:  // top level
     case 10: return "In Main Menu";
-    case 14: return "Result Screen";
-    case 17: return "In the Title Screen";
+    case 14: return "In Result Screen";
+    case 17: return "In Title Screen";
     case 20: // top level
     case 21: return "In Online Menu";
     case 24: return "Searching for a Lobby...";
     case 27: return "Waiting in Lobby";
     case 52: return "Viewing Command List";
     case 55: return "Paused in Training Mode";
-    case 70: return "Leaderboards";
+    case 70: return "Viewing Leaderboards";
     case 76: // top level
     case 77: return "Customizing Music";
     default: return nullptr;
