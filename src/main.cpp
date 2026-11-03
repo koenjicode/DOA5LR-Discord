@@ -96,7 +96,7 @@ public:
         // The fight flag is set as soon as loading starts, while the stage and characters are still
         // stale; the UI layer stays at kLoading until the fight is actually loaded.
         const uint32_t ui = s.uiLayer.value_or(0xFF);
-        const bool inBattle = s.inMatch.value_or(0) != 0 && s.stage != kNoStage || isOnlineScreen(ui);
+        const bool inBattle = s.inMatch.value_or(0) != 0 && s.stage != kNoStage || isBattleScreen(ui);
 
         // The timer only runs during a battle, restarting with each one.
         if (inBattle && !m_wasInBattle) m_battleStartTime = time(nullptr);
