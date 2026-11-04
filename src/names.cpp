@@ -141,7 +141,7 @@ bool isBattleScreen(uint32_t screen) {
 }
 
 bool isOnlineScreen(uint32_t screen) {
-    return screen == 20 || screen == 21 || screen == 27 || screen == 70;
+    return screen == 20 || screen == 21 || screen == 24 || screen == 27 || screen == 70;
 }
 
 const char* screenName(uint32_t screen) {
