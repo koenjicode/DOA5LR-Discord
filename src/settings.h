@@ -5,7 +5,7 @@
 namespace settings {
     
 // Plugin version, shown in the large image's hover text and the log.
-constexpr const char* kVersion = "1.5.0";
+constexpr const char* kVersion = "1.5.1";
 
 // Discord application ID.
 constexpr int64_t kClientId = 1564444889482264639;
