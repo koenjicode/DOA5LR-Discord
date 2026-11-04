@@ -12,16 +12,17 @@
 </div>
 
 > [!WARNING]
-> This is an ASI plugin that reads static addresses in the game's memory and displays them on Discord.
+> This ASI plugin reads static addresses in the game's memory and displays them on Discord.
 > Releases of DOA5LR-Discord will include the ASI loader, but you may already have it if you've installed DOARevolution.
 > Your antivirus may flag the required .dll as a virus. If this occurs, add the .dll to your exclusions.
 
 ## Preview
 
 <div align="center">
-  <img src="images/screenshot.png" alt="Dead Or Alive 5 Last Round Discord Rich Presence showing state-related information (Character) on the character select." height="142">
-  <img src="images/screenshot_5.png" alt="Dead Or Alive 5 Last Round Discord Rich Presence showing state-related information (Character and Stage) in a Lobby match with 2 other players." height="142">
-  <img src="images/screenshot_3.png" alt="Dead Or Alive 5 Last Round Discord Rich Presence showing state-related information when the user is waiting in a lobby, at this point they can recieve invites." height="142">
+  <img src="images/screenshot.png" alt="State-related information when the user is on the character select." height="142">
+  <img src="images/screenshot_5.png" alt="State-related information when the user is in a Lobby match with 2 other players. At this point, other players can join the player." height="142">
+  <img src="images/screenshot_4.png" alt="State-related information when the user is playing Arcade mode, with their Stage information highlighted." height="142">
+  <img src="images/screenshot_2.png" alt="State-related information when the user is in practice mode." height="142">
 </div>
 
 ## Features
