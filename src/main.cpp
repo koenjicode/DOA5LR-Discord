@@ -430,7 +430,7 @@ private:
         if (mode == kTutorialMode) return "Playing the " + label;
         if (mode == kTrainingMode || mode == kComboChallengeMode)
         {
-            const std::string tagLabel = tag ? "Solo" : "Tag";
+            const std::string tagLabel = !tag ? "Solo" : "Tag";
             if (mode == kTrainingMode && s.modeVariant != 1) { return "Practicing " + tagLabel + " in " + label; }
             return "Practicing in " + label;
         }
@@ -445,8 +445,9 @@ private:
     
     std::string buildWinLabel(const uint32_t count) const
     {
-        const std::string textAmount = std::to_string(count > 0 ? count - 1 : 0);
-        if (count == 1) { return textAmount + " Win"; }
+        const uint32_t wins = count > 0 ? count - 1 : 0;
+        const std::string textAmount = std::to_string(wins);
+        if (wins == 1) { return textAmount + " Win"; }
         return textAmount + " Wins";
     }
 
