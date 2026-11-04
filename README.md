@@ -65,7 +65,3 @@ cmake --build --preset release
 
 The output in `build/Release/` is `DOA5Discord.asi` and `discord_game_sdk.dll`.
 The plugin links the CRT statically and loads the Discord SDK at runtime, so it has no other dependencies.
-
-## Credits
-
-DEAD OR ALIVE 5 Last Round and its characters and stages belong to KOEI TECMO GAMES.
