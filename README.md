@@ -19,16 +19,25 @@
 ## Preview
 
 <div align="center">
-  <img src="images/screenshot.png" alt="Dead Or Alive 5 Last Round Discord Rich Presence showing state-related information (Character and Stage) in a Lobby match with 2 other players." height="135">
-  <img src="images/screenshot_5.png" alt="Dead Or Alive 5 Last Round Discord Rich Presence showing state-related information (Character and Stage) in a Lobby match with 2 other players." height="135">
+  <img src="images/screenshot.png" alt="Dead Or Alive 5 Last Round Discord Rich Presence showing state-related information (Character) on the character select." height="142">
+  <img src="images/screenshot_5.png" alt="Dead Or Alive 5 Last Round Discord Rich Presence showing state-related information (Character and Stage) in a Lobby match with 2 other players." height="142">
+  <img src="images/screenshot_3.png" alt="Dead Or Alive 5 Last Round Discord Rich Presence showing state-related information when the user is waiting in a lobby, at this point they can recieve invites." height="142">
 </div>
 
 ## Features
 - Detailed Rich Presence state breakdown that updates live in matches.
 - Unique Small and Large icons for all 36 characters.
-- 5 selectable fallback images: Default, Default JP, Ultimate, Ultimate JP & Vanilla.
+- 5 selectable fallback cover images: Default, Default JP, Ultimate, Ultimate JP & Vanilla.
 - Ability to join lobbies directly through Discord.
 - Configurable .ini to adjust presentation.
+
+## Customization
+
+<div align="center">
+  <img src="images/selectable_covers.png" alt="Dead Or Alive 5 Last Round Discord Rich Presence showing state-related information (Character and Stage) in a Lobby match with 2 other players." height="720">
+
+  *Unique covers can be set in the `DOA5Discord.ini` file. A new configuration file is created if the old one is missing.*
+</div>
 
 ## Install
 
